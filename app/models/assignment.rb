@@ -17,8 +17,19 @@ class Assignment < ApplicationRecord
   enum :grading_scale, { no_scale: 0, letter: 1, percent: 2, custom: 3 }
   default_scope { order(deadline: :asc) }
   has_many :grades, dependent: :destroy
+  has_many :assignment_test_cases, dependent: :destroy
 
   has_noticed_notifications model_name: "NoticedNotification", dependent: :destroy
+
+  def auto_gradeable?
+    assignment_test_cases.any?
+  end
+
+  def suggested_grade_for(project)
+    results = project.verification_results.where(assignment_test_case: assignment_test_cases)
+    return nil if results.empty?
+    results.score_percentage
+  end
 
   def notify_recipient
     group.group_members.each do |group_member|

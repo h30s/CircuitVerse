@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_31_010356) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_01_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -88,6 +88,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_010356) do
     t.datetime "end_date", precision: nil
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "assignment_test_cases", force: :cascade do |t|
+    t.bigint "assignment_id", null: false
+    t.string "name", null: false
+    t.json "inputs", null: false
+    t.json "expected_outputs", null: false
+    t.integer "points", default: 1
+    t.integer "position", default: 0
+    t.boolean "sequential", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assignment_id"], name: "index_assignment_test_cases_on_assignment_id"
   end
 
   create_table "assignments", force: :cascade do |t|
@@ -287,6 +300,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_010356) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "lti_platforms", force: :cascade do |t|
+    t.string "issuer", null: false
+    t.string "client_id", null: false
+    t.string "deployment_id"
+    t.text "public_key_set_url"
+    t.string "auth_endpoint"
+    t.string "token_endpoint"
+    t.text "tool_private_key"
+    t.text "tool_public_key"
+    t.bigint "group_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["group_id"], name: "index_lti_platforms_on_group_id"
+    t.index ["issuer", "client_id"], name: "index_lti_platforms_on_issuer_and_client_id", unique: true
+  end
+
   create_table "mailkick_opt_outs", force: :cascade do |t|
     t.string "email"
     t.string "user_type"
@@ -417,6 +446,29 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_010356) do
     t.index ["user_id"], name: "index_stars_on_user_id"
   end
 
+  create_table "subgroup_members", force: :cascade do |t|
+    t.bigint "subgroup_id", null: false
+    t.bigint "user_id", null: false
+    t.integer "role", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["subgroup_id", "user_id"], name: "index_subgroup_members_on_subgroup_id_and_user_id", unique: true
+    t.index ["subgroup_id"], name: "index_subgroup_members_on_subgroup_id"
+    t.index ["user_id"], name: "index_subgroup_members_on_user_id"
+  end
+
+  create_table "subgroups", force: :cascade do |t|
+    t.string "name", null: false
+    t.bigint "group_id", null: false
+    t.bigint "created_by_id", null: false
+    t.integer "max_members", default: 5
+    t.string "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_subgroups_on_created_by_id"
+    t.index ["group_id"], name: "index_subgroups_on_group_id"
+  end
+
   create_table "submission_votes", force: :cascade do |t|
     t.bigint "contest_id"
     t.bigint "submission_id"
@@ -511,6 +563,20 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_010356) do
     t.index ["searchable"], name: "index_users_on_searchable", using: :gin
   end
 
+  create_table "verification_results", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.bigint "assignment_test_case_id", null: false
+    t.boolean "passed", default: false
+    t.json "actual_outputs"
+    t.string "status", default: "pending"
+    t.datetime "verified_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assignment_test_case_id"], name: "index_verification_results_on_assignment_test_case_id"
+    t.index ["project_id", "assignment_test_case_id"], name: "idx_verification_uniqueness", unique: true
+    t.index ["project_id"], name: "index_verification_results_on_project_id"
+  end
+
   create_table "votes", id: :serial, force: :cascade do |t|
     t.string "votable_type"
     t.integer "votable_id"
@@ -527,6 +593,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_010356) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "assignment_test_cases", "assignments"
   add_foreign_key "assignments", "groups"
   add_foreign_key "collaborations", "projects"
   add_foreign_key "collaborations", "users"
@@ -548,6 +615,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_010356) do
   add_foreign_key "group_members", "groups"
   add_foreign_key "group_members", "users"
   add_foreign_key "groups", "users", column: "primary_mentor_id"
+  add_foreign_key "lti_platforms", "groups"
   add_foreign_key "pending_invitations", "groups"
   add_foreign_key "project_data", "projects"
   add_foreign_key "projects", "assignments"
@@ -555,6 +623,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_010356) do
   add_foreign_key "projects", "users", column: "author_id"
   add_foreign_key "stars", "projects"
   add_foreign_key "stars", "users"
+  add_foreign_key "subgroup_members", "subgroups"
+  add_foreign_key "subgroup_members", "users"
+  add_foreign_key "subgroups", "groups"
+  add_foreign_key "subgroups", "users", column: "created_by_id"
   add_foreign_key "submission_votes", "contests"
   add_foreign_key "submission_votes", "submissions"
   add_foreign_key "submission_votes", "users"
@@ -563,4 +635,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_31_010356) do
   add_foreign_key "submissions", "users"
   add_foreign_key "taggings", "projects"
   add_foreign_key "taggings", "tags"
+  add_foreign_key "verification_results", "assignment_test_cases"
+  add_foreign_key "verification_results", "projects"
 end

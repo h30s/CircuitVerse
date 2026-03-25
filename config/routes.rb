@@ -134,6 +134,12 @@ Rails.application.routes.draw do
     match 'launch', to: 'lti#launch', via: [:get, :post]
   end
 
+  scope :lti13 do
+    match 'login',  to: 'lti13#login',  via: [:get, :post], as: :lti13_login
+    post  'launch', to: 'lti13#launch', as: :lti13_launch
+    get   'jwks',   to: 'lti13#jwks',   as: :lti13_jwks
+  end
+
   mount Commontator::Engine => "/commontator"
 
   # simulator

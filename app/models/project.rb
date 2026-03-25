@@ -32,6 +32,12 @@ class Project < ApplicationRecord
   has_many :notifications, as: :notifiable
   has_one :contest_winner, dependent: :destroy
   has_many :submissions, dependent: :destroy
+  has_many :verification_results, dependent: :destroy
+
+  def verification_score
+    return nil unless assignment&.auto_gradeable?
+    verification_results.score_percentage
+  end
 
   scope :public_and_not_forked,
         -> { where(project_access_type: "Public", forked_project_id: nil) }
